@@ -124,12 +124,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Deploy with Ansible
-        shell: pwsh
+        shell: powershell
         run: |
           $ws = (& C:\devops\cygwin\bin\cygpath.exe -u $env:GITHUB_WORKSPACE).Trim()
           & C:\devops\cygwin\bin\bash.exe -lc "cd '$ws/ansible' && export PATH=`$HOME/.local/bin:`$PATH && chmod +x ci-run-deploy.sh && ./ci-run-deploy.sh '$env:GITHUB_SHA'"
       - name: Check through Nginx
-        shell: pwsh
+        shell: powershell
         run: |
           $response = Invoke-WebRequest -Uri "http://$($env:VM_HOST)/health" -UseBasicParsing -TimeoutSec 10
           Write-Output $response.Content
