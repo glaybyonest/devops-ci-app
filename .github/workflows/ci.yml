@@ -107,3 +107,33 @@ jobs:
         run: |
           docker push "${IMAGE_NAME}:${GITHUB_SHA}"
           docker push "${IMAGE_NAME}:latest"
+  deploy:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, devops-vm]
+    permissions:
+      contents: read
+    concurrency:
+      group: deploy-devops-vm
+      cancel-in-progress: false
+    env:
+      VM_HOST: 192.168.56.102
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Deploy with Ansible
+        shell: pwsh
+        run: |
+          $ws = (& C:\devops\cygwin\bin\cygpath.exe -u $env:GITHUB_WORKSPACE).Trim()
+          & C:\devops\cygwin\bin\bash.exe -lc "cd '$ws/ansible' && export PATH=`$HOME/.local/bin:`$PATH && chmod +x ci-run-deploy.sh && ./ci-run-deploy.sh '$env:GITHUB_SHA'"
+      - name: Check through Nginx
+        shell: pwsh
+        run: |
+          $response = Invoke-WebRequest -Uri "http://$($env:VM_HOST)/health" -UseBasicParsing -TimeoutSec 10
+          Write-Output $response.Content
+          if ($response.StatusCode -ne 200) { throw "unexpected HTTP status $($response.StatusCode)" }
+          $payload = $response.Content | ConvertFrom-Json
+          if ($payload.status -ne "ok") { throw "unexpected payload: $($response.Content)" }
+          Write-Output "health check passed through Nginx"
