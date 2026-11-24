@@ -1,0 +1,9 @@
+---
+- name: Deploy published image to devops VM
+  hosts: vm
+  become: true
+  vars:
+    ansible_user: devops
+  roles:
+    - nginx
+    - app
